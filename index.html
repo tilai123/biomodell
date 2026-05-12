@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMDB Sentiment Analyzer</title>
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0f172a;
+      --card: rgba(15, 23, 42, 0.7);
+      --border: rgba(255,255,255,0.08);
+      --primary: #7c3aed;
+      --primary-light: #a78bfa;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(124,58,237,0.3), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(59,130,246,0.2), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(124,58,237,0.15);
+      border: 1px solid rgba(167,139,250,0.25);
+      color: var(--primary-light);
+      font-size: 14px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      line-height: 1;
+      font-weight: 800;
+      margin-bottom: 20px;
+      letter-spacing: -2px;
+    }
+
+    .gradient {
+      background: linear-gradient(135deg, #c084fc, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 32px;
+      backdrop-filter: blur(18px);
+      box-shadow:
+        0 10px 40px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 15px;
+      color: #cbd5e1;
+      font-weight: 500;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      resize: vertical;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      padding: 22px;
+      color: white;
+      font-size: 16px;
+      line-height: 1.7;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    textarea:focus {
+      border-color: rgba(167,139,250,0.5);
+      box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+    }
+
+    textarea::placeholder {
+      color: #64748b;
+    }
+
+    .actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      transition: 0.25s ease;
+      font-weight: 600;
+      font-size: 15px;
+      border-radius: 16px;
+      padding: 16px 24px;
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      color: white;
+      flex: 1;
+      min-width: 220px;
+      box-shadow: 0 10px 25px rgba(124,58,237,0.3);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(124,58,237,0.4);
+    }
+
+    .secondary-btn {
+      background: rgba(255,255,255,0.05);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .secondary-btn:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .result {
+      margin-top: 28px;
+      display: none;
+    }
+
+    .result-card {
+      border-radius: 22px;
+      padding: 28px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .result-label {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .prediction {
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .score {
+      color: #cbd5e1;
+      font-size: 1rem;
+    }
+
+    .positive {
+      color: var(--success);
+    }
+
+    .negative {
+      color: var(--danger);
+    }
+
+    .loading {
+      display: none;
+      margin-top: 24px;
+      color: var(--primary-light);
+      text-align: center;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 28px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .card {
+        padding: 24px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="hero">
+      <div class="badge">AI Powered Sentiment Analysis</div>
+
+      <h1>
+        Analyze <span class="gradient">IMDB Reviews</span><br>
+        in Real Time
+      </h1>
+
+      <p class="subtitle">
+        Klistra in en filmrecension och låt AI-modellen avgöra om recensionen
+        är positiv eller negativ med hjälp av TensorFlow.js direkt i webbläsaren.
+      </p>
+    </div>
+
+    <div class="card">
+
+      <label class="label">Skriv eller klistra in en recension</label>
+
+      <textarea id="reviewInput" placeholder="Exempel:
+This movie was absolutely amazing. The acting was fantastic and the story kept me engaged from start to finish..."></textarea>
+
+      <div class="actions">
+        <button class="primary-btn" onclick="predictSentiment()">
+          Analyze Review
+        </button>
+
+        <button class="secondary-btn" onclick="fillExample()">
+          Test Example
+        </button>
+      </div>
+
+      <div class="loading" id="loading">
+        Laddar AI-modell...
+      </div>
+
+      <div class="result" id="result">
+        <div class="result-card">
+          <div class="result-label">Prediction</div>
+
+          <div class="prediction" id="predictionText">
+            Positive
+          </div>
+
+          <div class="score" id="scoreText">
+            Confidence: 95%
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer">
+      Built with TensorFlow.js • Ready for Github Pages
+    </div>
+
+  </div>
+
+  <script>
+
+    let model;
+    let metadata;
+
+    async function loadModel() {
+      try {
+
+        document.getElementById("loading").style.display = "block";
+
+        model = await tf.loadLayersModel("./model.json");
+
+        const response = await fetch("./metadata.json");
+        metadata = await response.json();
+
+        document.getElementById("loading").style.display = "none";
+
+        console.log("Model loaded successfully");
+
+      } catch (error) {
+        console.error("Error loading model:", error);
+
+        document.getElementById("loading").innerHTML =
+          "Kunde inte ladda modellen.";
+      }
+    }
+
+    function preprocessText(text) {
+
+      text = text
+        .toLowerCase()
+        .replace(/<br\s*\/?>/gi, " ")
+        .replace(/[^\w\s']/g, "");
+
+      const words = text.split(/\s+/);
+
+      const sequence = words.map(word => {
+        return metadata.word_index[word] || 1;
+      });
+
+      const padded = new Array(metadata.max_length).fill(0);
+
+      for (let i = 0; i < Math.min(sequence.length, metadata.max_length); i++) {
+        padded[i] = sequence[i];
+      }
+
+      return padded;
+    }
+
+    async function predictSentiment() {
+
+      const input = document.getElementById("reviewInput").value.trim();
+
+      if (!input) {
+        alert("Skriv en recension först.");
+        return;
+      }
+
+      const processed = preprocessText(input);
+
+      const tensor = tf.tensor2d([processed]);
+
+      const prediction = model.predict(tensor);
+
+      const score = (await prediction.data())[0];
+
+      const isPositive = score > 0.5;
+
+      const result = document.getElementById("result");
+      const predictionText = document.getElementById("predictionText");
+      const scoreText = document.getElementById("scoreText");
+
+      predictionText.textContent = isPositive
+        ? "😊 Positive Review"
+        : "😞 Negative Review";
+
+      predictionText.className = isPositive
+        ? "prediction positive"
+        : "prediction negative";
+
+      scoreText.textContent =
+        "Confidence: " + (score * 100).toFixed(2) + "%";
+
+      result.style.display = "block";
+
+      tf.dispose([tensor, prediction]);
+    }
+
+    function fillExample() {
+      document.getElementById("reviewInput").value =
+        "This movie was absolutely incredible. The acting was amazing, the story was emotional and the cinematography looked beautiful.";
+    }
+
+    loadModel();
+
+  </script>
+
+</body>
+</html>
