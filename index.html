@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>IMDB Sentiment Analyzer</title>
 
-  <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- TensorFlow.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 
   <style>
     * {
@@ -20,226 +20,208 @@
       box-sizing: border-box;
     }
 
-    :root {
-      --bg: #0f172a;
-      --card: rgba(15, 23, 42, 0.7);
-      --border: rgba(255,255,255,0.08);
-      --primary: #7c3aed;
-      --primary-light: #a78bfa;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --success: #22c55e;
-      --danger: #ef4444;
-    }
-
     body {
       font-family: 'Inter', sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(124,58,237,0.3), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(59,130,246,0.2), transparent 30%),
-        var(--bg);
-      color: var(--text);
       min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(99,102,241,0.25), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(168,85,247,0.25), transparent 30%),
+        #0f172a;
+      color: white;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 32px;
+      padding: 30px;
       overflow-x: hidden;
     }
 
-    .container {
+    .glass {
       width: 100%;
       max-width: 900px;
-    }
-
-    .hero {
-      text-align: center;
-      margin-bottom: 40px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 28px;
+      padding: 50px;
+      box-shadow:
+        0 10px 40px rgba(0,0,0,0.35),
+        inset 0 1px 1px rgba(255,255,255,0.1);
     }
 
     .badge {
-      display: inline-block;
-      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
       border-radius: 999px;
-      background: rgba(124,58,237,0.15);
-      border: 1px solid rgba(167,139,250,0.25);
-      color: var(--primary-light);
+      background: rgba(99,102,241,0.18);
+      border: 1px solid rgba(99,102,241,0.4);
+      color: #c7d2fe;
       font-size: 14px;
-      margin-bottom: 20px;
-      backdrop-filter: blur(10px);
+      margin-bottom: 25px;
     }
 
     h1 {
-      font-size: clamp(2.8rem, 6vw, 5rem);
-      line-height: 1;
-      font-weight: 800;
-      margin-bottom: 20px;
+      font-size: 52px;
+      font-weight: 700;
+      line-height: 1.05;
+      margin-bottom: 18px;
       letter-spacing: -2px;
     }
 
     .gradient {
-      background: linear-gradient(135deg, #c084fc, #60a5fa);
+      background: linear-gradient(135deg, #818cf8, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
 
     .subtitle {
-      color: var(--muted);
-      font-size: 1.1rem;
-      max-width: 700px;
-      margin: 0 auto;
-      line-height: 1.8;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 28px;
-      padding: 32px;
-      backdrop-filter: blur(18px);
-      box-shadow:
-        0 10px 40px rgba(0,0,0,0.35),
-        inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-
-    .label {
-      display: block;
-      margin-bottom: 14px;
-      font-size: 15px;
       color: #cbd5e1;
-      font-weight: 500;
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 700px;
+      margin-bottom: 40px;
     }
 
-    textarea {
+    .review-box {
       width: 100%;
-      min-height: 220px;
-      resize: vertical;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
-      padding: 22px;
+      height: 220px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(15,23,42,0.55);
       color: white;
+      padding: 24px;
+      resize: none;
+      outline: none;
       font-size: 16px;
       line-height: 1.7;
-      outline: none;
-      transition: all 0.25s ease;
+      transition: 0.3s ease;
     }
 
-    textarea:focus {
-      border-color: rgba(167,139,250,0.5);
-      box-shadow: 0 0 0 4px rgba(124,58,237,0.15);
+    .review-box:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 4px rgba(139,92,246,0.2);
     }
 
-    textarea::placeholder {
-      color: #64748b;
+    .review-box::placeholder {
+      color: #94a3b8;
     }
 
-    .actions {
+    .buttons {
       display: flex;
       gap: 16px;
       margin-top: 24px;
       flex-wrap: wrap;
     }
 
-    button {
+    .btn {
       border: none;
       cursor: pointer;
-      transition: 0.25s ease;
+      padding: 16px 28px;
+      border-radius: 18px;
+      font-size: 16px;
       font-weight: 600;
-      font-size: 15px;
-      border-radius: 16px;
-      padding: 16px 24px;
+      transition: 0.3s ease;
     }
 
-    .primary-btn {
-      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
       color: white;
-      flex: 1;
-      min-width: 220px;
-      box-shadow: 0 10px 25px rgba(124,58,237,0.3);
+      box-shadow: 0 10px 25px rgba(139,92,246,0.35);
     }
 
-    .primary-btn:hover {
+    .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 14px 30px rgba(124,58,237,0.4);
+      box-shadow: 0 16px 30px rgba(139,92,246,0.45);
     }
 
-    .secondary-btn {
-      background: rgba(255,255,255,0.05);
-      color: white;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .secondary-btn:hover {
+    .btn-secondary {
       background: rgba(255,255,255,0.08);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.12);
     }
 
     .result {
-      margin-top: 28px;
-      display: none;
-    }
-
-    .result-card {
-      border-radius: 22px;
+      margin-top: 35px;
       padding: 28px;
-      text-align: center;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
+      border-radius: 24px;
+      background: rgba(15,23,42,0.55);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: none;
+      animation: fadeIn 0.4s ease;
     }
 
-    .result-label {
+    .result-title {
       font-size: 14px;
       text-transform: uppercase;
       letter-spacing: 2px;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    .prediction {
-      font-size: 2.2rem;
-      font-weight: 800;
+      color: #94a3b8;
       margin-bottom: 14px;
     }
 
-    .score {
-      color: #cbd5e1;
-      font-size: 1rem;
+    .sentiment {
+      font-size: 42px;
+      font-weight: 700;
+      margin-bottom: 14px;
     }
 
     .positive {
-      color: var(--success);
+      color: #22c55e;
     }
 
     .negative {
-      color: var(--danger);
+      color: #ef4444;
+    }
+
+    .confidence {
+      color: #cbd5e1;
+      font-size: 17px;
+    }
+
+    .footer {
+      margin-top: 40px;
+      color: #64748b;
+      font-size: 14px;
+      text-align: center;
     }
 
     .loading {
       display: none;
-      margin-top: 24px;
-      color: var(--primary-light);
-      text-align: center;
+      margin-top: 25px;
+      color: #cbd5e1;
+      font-weight: 500;
     }
 
-    .footer {
-      text-align: center;
-      margin-top: 28px;
-      color: #64748b;
-      font-size: 14px;
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0px);
+      }
     }
 
     @media (max-width: 768px) {
-      .card {
-        padding: 24px;
+      .glass {
+        padding: 28px;
       }
 
-      .actions {
-        flex-direction: column;
+      h1 {
+        font-size: 38px;
       }
 
-      .primary-btn,
-      .secondary-btn {
-        width: 100%;
+      .subtitle {
+        font-size: 16px;
+      }
+
+      .sentiment {
+        font-size: 32px;
       }
     }
   </style>
@@ -247,160 +229,154 @@
 
 <body>
 
-  <div class="container">
+  <div class="glass">
 
-    <div class="hero">
-      <div class="badge">AI Powered Sentiment Analysis</div>
-
-      <h1>
-        Analyze <span class="gradient">IMDB Reviews</span><br>
-        in Real Time
-      </h1>
-
-      <p class="subtitle">
-        Klistra in en filmrecension och låt AI-modellen avgöra om recensionen
-        är positiv eller negativ med hjälp av TensorFlow.js direkt i webbläsaren.
-      </p>
+    <div class="badge">
+      ✨ AI Powered Movie Review Analysis
     </div>
 
-    <div class="card">
+    <h1>
+      IMDB Review <span class="gradient">Sentiment Analyzer</span>
+    </h1>
 
-      <label class="label">Skriv eller klistra in en recension</label>
+    <p class="subtitle">
+      Klistra in en IMDB-recension och låt AI analysera om recensionen är positiv eller negativ.
+      Modern design, TensorFlow.js och redo för Github Pages.
+    </p>
 
-      <textarea id="reviewInput" placeholder="Exempel:
-This movie was absolutely amazing. The acting was fantastic and the story kept me engaged from start to finish..."></textarea>
+    <textarea
+      id="reviewInput"
+      class="review-box"
+      placeholder="Skriv eller klistra in en IMDB-recension här..."
+    ></textarea>
 
-      <div class="actions">
-        <button class="primary-btn" onclick="predictSentiment()">
-          Analyze Review
-        </button>
+    <div class="buttons">
+      <button class="btn btn-primary" onclick="analyzeReview()">
+        Analysera recension
+      </button>
 
-        <button class="secondary-btn" onclick="fillExample()">
-          Test Example
-        </button>
+      <button class="btn btn-secondary" onclick="clearReview()">
+        Rensa
+      </button>
+    </div>
+
+    <div class="loading" id="loading">
+      ⏳ AI-modellen analyserar recensionen...
+    </div>
+
+    <div class="result" id="result">
+      <div class="result-title">Resultat</div>
+
+      <div class="sentiment" id="sentimentText">
+        Positiv
       </div>
 
-      <div class="loading" id="loading">
-        Laddar AI-modell...
+      <div class="confidence" id="confidenceText">
+        Säkerhet: 95%
       </div>
-
-      <div class="result" id="result">
-        <div class="result-card">
-          <div class="result-label">Prediction</div>
-
-          <div class="prediction" id="predictionText">
-            Positive
-          </div>
-
-          <div class="score" id="scoreText">
-            Confidence: 95%
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <div class="footer">
-      Built with TensorFlow.js • Ready for Github Pages
+      Byggd med TensorFlow.js • Github Pages Ready
     </div>
 
   </div>
 
   <script>
-
     let model;
-    let metadata;
+    let wordIndex;
+    let maxLength = 256;
+
+    async function loadMetadata() {
+      const response = await fetch('./metadata.json');
+      const metadata = await response.json();
+
+      wordIndex = metadata.word_index;
+      maxLength = metadata.max_length;
+    }
 
     async function loadModel() {
-      try {
-
-        document.getElementById("loading").style.display = "block";
-
-        model = await tf.loadLayersModel("./model.json");
-
-        const response = await fetch("./metadata.json");
-        metadata = await response.json();
-
-        document.getElementById("loading").style.display = "none";
-
-        console.log("Model loaded successfully");
-
-      } catch (error) {
-        console.error("Error loading model:", error);
-
-        document.getElementById("loading").innerHTML =
-          "Kunde inte ladda modellen.";
-      }
+      model = await tf.loadLayersModel('./model.json');
+      console.log("Model loaded");
     }
 
     function preprocessText(text) {
+      text = text.toLowerCase();
 
-      text = text
-        .toLowerCase()
-        .replace(/<br\s*\/?>/gi, " ")
-        .replace(/[^\w\s']/g, "");
+      text = text.replace(/<br \\/>/g, ' ');
+      text = text.replace(/[^\w\s]/g, '');
 
       const words = text.split(/\s+/);
 
       const sequence = words.map(word => {
-        return metadata.word_index[word] || 1;
+        return wordIndex[word] || 1;
       });
 
-      const padded = new Array(metadata.max_length).fill(0);
-
-      for (let i = 0; i < Math.min(sequence.length, metadata.max_length); i++) {
-        padded[i] = sequence[i];
+      if (sequence.length > maxLength) {
+        return sequence.slice(0, maxLength);
       }
 
-      return padded;
+      while (sequence.length < maxLength) {
+        sequence.push(0);
+      }
+
+      return sequence;
     }
 
-    async function predictSentiment() {
-
-      const input = document.getElementById("reviewInput").value.trim();
+    async function analyzeReview() {
+      const input = document.getElementById('reviewInput').value.trim();
 
       if (!input) {
         alert("Skriv en recension först.");
         return;
       }
 
-      const processed = preprocessText(input);
+      const loading = document.getElementById('loading');
+      const result = document.getElementById('result');
 
-      const tensor = tf.tensor2d([processed]);
+      loading.style.display = 'block';
+      result.style.display = 'none';
+
+      const sequence = preprocessText(input);
+
+      const tensor = tf.tensor2d([sequence]);
 
       const prediction = model.predict(tensor);
 
       const score = (await prediction.data())[0];
 
-      const isPositive = score > 0.5;
+      const sentimentText = document.getElementById('sentimentText');
+      const confidenceText = document.getElementById('confidenceText');
 
-      const result = document.getElementById("result");
-      const predictionText = document.getElementById("predictionText");
-      const scoreText = document.getElementById("scoreText");
+      const percentage = (score * 100).toFixed(1);
 
-      predictionText.textContent = isPositive
-        ? "😊 Positive Review"
-        : "😞 Negative Review";
+      if (score >= 0.5) {
+        sentimentText.innerText = '😊 Positiv recension';
+        sentimentText.className = 'sentiment positive';
+        confidenceText.innerText = `Positiv sannolikhet: ${percentage}%`;
+      } else {
+        sentimentText.innerText = '😞 Negativ recension';
+        sentimentText.className = 'sentiment negative';
+        confidenceText.innerText = `Negativ sannolikhet: ${(100 - percentage).toFixed(1)}%`;
+      }
 
-      predictionText.className = isPositive
-        ? "prediction positive"
-        : "prediction negative";
-
-      scoreText.textContent =
-        "Confidence: " + (score * 100).toFixed(2) + "%";
-
-      result.style.display = "block";
+      loading.style.display = 'none';
+      result.style.display = 'block';
 
       tf.dispose([tensor, prediction]);
     }
 
-    function fillExample() {
-      document.getElementById("reviewInput").value =
-        "This movie was absolutely incredible. The acting was amazing, the story was emotional and the cinematography looked beautiful.";
+    function clearReview() {
+      document.getElementById('reviewInput').value = '';
+      document.getElementById('result').style.display = 'none';
     }
 
-    loadModel();
+    async function init() {
+      await loadMetadata();
+      await loadModel();
+    }
 
+    init();
   </script>
 
 </body>
